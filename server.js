@@ -52,9 +52,27 @@ function randomKey(keyLen = 7) {
   ].join("");
 }
 
+function getFilePath(req){
+  const dir = req.params.resources;
+  const id = req.params.id;
+  const basename = path.basename(id, ".json");
+	return path.join(BASE_PATH, dir, `${basename}.json`);
+}
+
 app.get("/api/:resources", function(req, res){
   console.log(req.params);
   const dir = req.params.resources;
+  const dirPath = path.join(BASE_PATH, dir);
+
+  if (!fs.existsSync(dirPath)) {
+    res.sendStatus(404);
+    return;
+  }
+
+  const files = fs.readdirSync(dirPath).map((file) => {
+    return path.basename(file, ".json");
+  });
+  res.json(files);
 });
 
 app.post("/api/:resources", function(req, res){
@@ -71,12 +89,6 @@ app.post("/api/:resources", function(req, res){
 	});
 });
 
-function getFilePath(req){
-  const dir = req.params.resources;
-  const id = req.params.id;
-  const basename = path.basename(id, ".json");
-	return path.join(BASE_PATH, dir, `${basename}.json`);
-}
 
 app.get("/api/:resources/:id", function(req, res){
   const filePath = getFilePath(req);
@@ -119,7 +131,7 @@ app.delete("/api/:resources/:id", function(req, res){
     return;
   }
 
-  fs.unlink(filePath, function(){
+  fs.unlinkSync(filePath, function(){
     res.json({status: "ok"});
   });
 });
