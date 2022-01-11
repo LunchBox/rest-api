@@ -10,17 +10,9 @@ const BASE_PATH = "public";
 
 app.use(express.static(BASE_PATH));
 
-// parse various different custom JSON types as JSON
-app.use(bodyParser.json({ type: 'application/*+json' }))
-
-// parse some custom thing into a Buffer
-app.use(bodyParser.raw({ type: 'application/vnd.custom-type' }))
-
-// parse an HTML body into a string
-app.use(bodyParser.text({ type: 'text/html' }))
-
 const jsonParser = bodyParser.json();
 app.use(jsonParser);
+
 
 app.get("/", function(req, res){
   res.send("Hello World!");
@@ -131,9 +123,8 @@ app.delete("/api/:resources/:id", function(req, res){
     return;
   }
 
-  fs.unlinkSync(filePath, function(){
-    res.json({status: "ok"});
-  });
+  fs.unlinkSync(filePath);
+  res.json({msg: "resource deleted"});
 });
 
 
