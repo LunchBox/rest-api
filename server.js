@@ -6,7 +6,9 @@ const path = require("path");
 const app = express();
 
 const PORT = 9090;
+const BASE_PATH = "public";
 
+app.use(express.static(BASE_PATH));
 
 // parse various different custom JSON types as JSON
 app.use(bodyParser.json({ type: 'application/*+json' }))
@@ -24,7 +26,6 @@ app.get("/", function(req, res){
   res.send("Hello World!");
 });
 
-const BASE_PATH = "./store";
 
 function createDir(dir){
   const dirPath = path.join(BASE_PATH, dir);
@@ -54,8 +55,6 @@ function randomKey(keyLen = 7) {
 app.get("/api/:resources", function(req, res){
   console.log(req.params);
   const dir = req.params.resources;
-
-
 });
 
 app.post("/api/:resources", function(req, res){
@@ -64,24 +63,65 @@ app.post("/api/:resources", function(req, res){
 
   const key = randomKey();
 	const filePath = path.join(BASE_PATH, dir, `${key}.json`);
+  const publicPath = path.join("/", dir, `${key}.json`);
 
 	const json = JSON.stringify(req.body);
 	fs.writeFile(filePath, json, "utf8", function(){
-		res.send(200);
+		res.send({id: key, path: publicPath});
 	});
-
 });
 
+function getFilePath(req){
+  const dir = req.params.resources;
+  const id = req.params.id;
+  const basename = path.basename(id, ".json");
+	return path.join(BASE_PATH, dir, `${basename}.json`);
+}
+
 app.get("/api/:resources/:id", function(req, res){
-  console.log(req.params);
+  const filePath = getFilePath(req);
+
+  if (!fs.existsSync(filePath)) {
+    res.sendStatus(404);
+    return;
+  }
+
+  // TODO: serve the file directly
+  fs.readFile(filePath, (err, json) => {
+    const obj = JSON.parse(json);
+    res.json(obj);
+  });
 });
 
 app.put("/api/:resources/:id", function(req, res){
-  console.log(req.params);
+  const filePath = getFilePath(req);
+
+  if (!fs.existsSync(filePath)) {
+    res.sendStatus(404);
+    return;
+  }
+
+	const json = JSON.stringify(req.body);
+	fs.writeFile(filePath, json, "utf8", function(){
+    fs.readFile(filePath, (err, json) => {
+      const obj = JSON.parse(json);
+      res.json(obj);
+    });
+	});
 });
 
 app.delete("/api/:resources/:id", function(req, res){
-  console.log(req.params);
+  const filePath = getFilePath(req);
+  console.log(filePath);
+
+  if (!fs.existsSync(filePath)) {
+    res.sendStatus(404);
+    return;
+  }
+
+  fs.unlink(filePath, function(){
+    res.json({status: "ok"});
+  });
 });
 
 
