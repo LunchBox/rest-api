@@ -117,7 +117,7 @@ app.delete("/api/:resources/:id", function (req, res) {
 	res.json({ msg: "resource deleted" });
 });
 
-app.listen(PORT, function () {
+const server = app.listen(PORT, function () {
 	const { address, port } = server.address();
 
 	console.log("url: http://%s:%s", address, port);
