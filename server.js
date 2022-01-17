@@ -91,6 +91,7 @@ app.get("/api/:resources/:id", function (req, res) {
 });
 
 app.put("/api/:resources/:id", function (req, res) {
+  console.log("-- on put", req.body);
 	const filePath = getFilePath(req);
 
 	if (!fs.existsSync(filePath)) {
