@@ -7,6 +7,7 @@ const app = express();
 
 const PORT = 9090;
 const BASE_PATH = path.join(__dirname, "public");
+const UPLOADS_PATH = path.join(__dirname, "uploads");
 
 console.log(BASE_PATH);
 
@@ -130,7 +131,7 @@ app.delete("/api/:resources/:id", function (req, res) {
 app.post('/file_upload', function (req, res) {
   console.log(req.files[0]);  // 上传的文件信息
 
-  let des_file = path.join(BASE_PATH, "uploads", req.files[0].originalname);
+  let des_file = path.join(UPLOADS_PATH, req.files[0].originalname);
   fs.readFile( req.files[0].path, function (err, data) {
     fs.writeFile(des_file, data, function (err) {
       if( err ){
