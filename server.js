@@ -6,7 +6,9 @@ const path = require("path");
 const app = express();
 
 const PORT = 9090;
-const BASE_PATH = "public";
+const BASE_PATH = path.join(__dirname, "public");
+
+console.log(BASE_PATH);
 
 app.use(express.static(BASE_PATH));
 
@@ -42,10 +44,11 @@ function randomKey(keyLen = 7) {
 	].join("");
 }
 
-function getFilePath(req) {
+function getAPIFilePath(req) {
 	const dir = req.params.resources;
 	const id = req.params.id;
 	const basename = path.basename(id, ".json");
+  console.log(BASE_PATH, dir)
 	return path.join(BASE_PATH, dir, `${basename}.json`);
 }
 
@@ -80,19 +83,22 @@ app.post("/api/:resources", function (req, res) {
 });
 
 app.get("/api/:resources/:id", function (req, res) {
-	const filePath = getFilePath(req);
+	const filePath = getAPIFilePath(req);
+  console.log(filePath);
 
 	if (!fs.existsSync(filePath)) {
 		res.sendStatus(404);
 		return;
 	}
 
-	res.sendFile(filePath, { root: __dirname });
+  // TODO: check file under BASE_PATH
+  // res.sendFile(filePath, { root: __dirname });
+	res.sendFile(filePath);
 });
 
 app.put("/api/:resources/:id", function (req, res) {
   console.log("-- on put", req.body);
-	const filePath = getFilePath(req);
+	const filePath = getAPIFilePath(req);
 
 	if (!fs.existsSync(filePath)) {
 		res.sendStatus(404);
@@ -101,12 +107,14 @@ app.put("/api/:resources/:id", function (req, res) {
 
 	const json = JSON.stringify(req.body);
 	fs.writeFile(filePath, json, "utf8", function () {
-		res.sendFile(filePath, { root: __dirname });
+    // TODO: check file under BASE_PATH
+    // res.sendFile(filePath, { root: __dirname });
+		res.sendFile(filePath);
 	});
 });
 
 app.delete("/api/:resources/:id", function (req, res) {
-	const filePath = getFilePath(req);
+	const filePath = getAPIFilePath(req);
 	console.log(filePath);
 
 	if (!fs.existsSync(filePath)) {
@@ -116,6 +124,27 @@ app.delete("/api/:resources/:id", function (req, res) {
 
 	fs.unlinkSync(filePath);
 	res.json({ msg: "resource deleted" });
+});
+
+
+app.post('/file_upload', function (req, res) {
+  console.log(req.files[0]);  // 上传的文件信息
+
+  let des_file = path.join(BASE_PATH, "uploads", req.files[0].originalname);
+  fs.readFile( req.files[0].path, function (err, data) {
+    fs.writeFile(des_file, data, function (err) {
+      if( err ){
+        console.log( err );
+      }else{
+        response = {
+          message:'File uploaded successfully', 
+          filename:req.files[0].originalname
+        };
+      }
+      console.log( response );
+      res.end( JSON.stringify( response ) );
+    });
+  });
 });
 
 const server = app.listen(PORT, function () {
