@@ -9,12 +9,12 @@ const PORT = 9090;
 const BASE_PATH = path.join(__dirname, "public");
 const UPLOADS_PATH = path.join(__dirname, "uploads");
 
-console.log(BASE_PATH);
-
 app.use(express.static(BASE_PATH));
 
-const jsonParser = bodyParser.json();
-app.use(jsonParser);
+// const jsonParser = bodyParser.json();
+// app.use(jsonParser);
+
+app.use(bodyParser.text());
 
 app.get("/", function (req, res) {
 	res.send("Hello World!");
@@ -48,57 +48,83 @@ function randomKey(keyLen = 7) {
 function getAPIFilePath(req) {
 	const dir = req.params.resources;
 	const id = req.params.id;
-	const basename = path.basename(id, ".json");
-  console.log(BASE_PATH, dir)
-	return path.join(BASE_PATH, dir, `${basename}.json`);
+	console.log(dir, id);
+	// const basename = path.basename(id, ".json");
+	const basename = path.basename(id);
+	return path.join(BASE_PATH, dir, basename);
 }
 
+// index
 app.get("/api/:resources", function (req, res) {
-	console.log(req.params);
-	const dir = req.params.resources;
-	const dirPath = path.join(BASE_PATH, dir);
+	const resources = req.params.resources;
+	const ext = path.extname(resources);
+	if (ext === "") {
+		console.log("file extension is required.");
+		res.sendStatus(400);
+		return;
+	}
+
+	const dirName = path.basename(resources, ext);
+	const dirPath = path.join(BASE_PATH, dirName);
 
 	if (!fs.existsSync(dirPath)) {
 		res.sendStatus(404);
 		return;
 	}
 
-	const files = fs.readdirSync(dirPath).map((file) => {
-		return path.basename(file, ".json");
-	});
+	const files = fs
+		.readdirSync(dirPath)
+		.map((file) => {
+			return path.basename(file);
+		})
+		.filter((file) => path.extname(file) === ext);
+
 	res.json(files);
 });
 
+// create resource
+// POST /api/entries.json  # will create json file
 app.post("/api/:resources", function (req, res) {
-	const dir = req.params.resources;
-	createDir(dir);
+	const resources = req.params.resources;
+	const ext = path.extname(resources);
+	if (ext === "") {
+		console.log("file extension is required.");
+		res.sendStatus(400);
+		return;
+	}
+
+	const dirName = path.basename(resources, ext);
+	createDir(dirName);
 
 	const key = randomKey();
-	const filePath = path.join(BASE_PATH, dir, `${key}.json`);
-	const publicPath = path.join("/", dir, `${key}.json`);
+	const fileName = key + ext;
+	const filePath = path.join(BASE_PATH, dirName, fileName);
+	const publicPath = path.join("/", dirName, fileName);
 
-	const json = JSON.stringify(req.body);
-	fs.writeFile(filePath, json, "utf8", function () {
+	let content = req.body;
+
+	fs.writeFile(filePath, content, "utf8", function () {
 		res.send({ id: key, path: publicPath });
 	});
 });
 
+// show
 app.get("/api/:resources/:id", function (req, res) {
 	const filePath = getAPIFilePath(req);
-  console.log(filePath);
+	console.log(filePath);
 
 	if (!fs.existsSync(filePath)) {
 		res.sendStatus(404);
 		return;
 	}
 
-  // TODO: check file under BASE_PATH
-  // res.sendFile(filePath, { root: __dirname });
+	// TODO: check file under BASE_PATH
+	// res.sendFile(filePath, { root: __dirname });
 	res.sendFile(filePath);
 });
 
+// update resource
 app.put("/api/:resources/:id", function (req, res) {
-  console.log("-- on put", req.body);
 	const filePath = getAPIFilePath(req);
 
 	if (!fs.existsSync(filePath)) {
@@ -106,10 +132,11 @@ app.put("/api/:resources/:id", function (req, res) {
 		return;
 	}
 
-	const json = JSON.stringify(req.body);
-	fs.writeFile(filePath, json, "utf8", function () {
-    // TODO: check file under BASE_PATH
-    // res.sendFile(filePath, { root: __dirname });
+	// const json = JSON.stringify(req.body);
+	const content = req.body;
+	fs.writeFile(filePath, content, "utf8", function () {
+		// TODO: check file under BASE_PATH
+		// res.sendFile(filePath, { root: __dirname });
 		res.sendFile(filePath);
 	});
 });
@@ -127,25 +154,24 @@ app.delete("/api/:resources/:id", function (req, res) {
 	res.json({ msg: "resource deleted" });
 });
 
+app.post("/file_upload", function (req, res) {
+	console.log(req.files[0]); // 上传的文件信息
 
-app.post('/file_upload', function (req, res) {
-  console.log(req.files[0]);  // 上传的文件信息
-
-  let des_file = path.join(UPLOADS_PATH, req.files[0].originalname);
-  fs.readFile( req.files[0].path, function (err, data) {
-    fs.writeFile(des_file, data, function (err) {
-      if( err ){
-        console.log( err );
-      }else{
-        response = {
-          message:'File uploaded successfully', 
-          filename:req.files[0].originalname
-        };
-      }
-      console.log( response );
-      res.end( JSON.stringify( response ) );
-    });
-  });
+	let des_file = path.join(UPLOADS_PATH, req.files[0].originalname);
+	fs.readFile(req.files[0].path, function (err, data) {
+		fs.writeFile(des_file, data, function (err) {
+			if (err) {
+				console.log(err);
+			} else {
+				response = {
+					message: "File uploaded successfully",
+					filename: req.files[0].originalname,
+				};
+			}
+			console.log(response);
+			res.end(JSON.stringify(response));
+		});
+	});
 });
 
 const server = app.listen(PORT, function () {
