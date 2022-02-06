@@ -125,12 +125,11 @@ app.get("/api/:resources/:id", function (req, res) {
 
 // update resource
 app.put("/api/:resources/:id", function (req, res) {
-	const filePath = getAPIFilePath(req);
+	const dirName = req.params.resources;
+	createDir(dirName);
 
-	if (!fs.existsSync(filePath)) {
-		res.sendStatus(404);
-		return;
-	}
+	const filePath = getAPIFilePath(req);
+	console.log(filePath);
 
 	// const json = JSON.stringify(req.body);
 	const content = req.body;
