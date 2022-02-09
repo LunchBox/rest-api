@@ -81,7 +81,7 @@ app.get("/api/:resources", function (req, res) {
 			);
 			return {
 				filename,
-				atime,
+				birthtime,
 				mtime,
 				size,
 			};
