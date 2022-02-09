@@ -76,7 +76,7 @@ app.get("/api/:resources", function (req, res) {
 		.readdirSync(dirPath)
 		.map((file) => {
 			const filename = path.basename(file);
-			const { atime, mtime, size } = fs.statSync(
+			const { birthtime, mtime, size } = fs.statSync(
 				path.join(dirPath, file),
 			);
 			return {
