@@ -75,9 +75,18 @@ app.get("/api/:resources", function (req, res) {
 	const files = fs
 		.readdirSync(dirPath)
 		.map((file) => {
-			return path.basename(file);
+			const filename = path.basename(file);
+			const { atime, mtime, size } = fs.statSync(
+				path.join(dirPath, file),
+			);
+			return {
+				filename,
+				atime,
+				mtime,
+				size,
+			};
 		})
-		.filter((file) => path.extname(file) === ext);
+		.filter((obj) => path.extname(obj.filename) === ext);
 
 	res.json(files);
 });
