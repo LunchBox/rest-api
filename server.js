@@ -1,4 +1,5 @@
 const express = require("express");
+const fileUpload = require("express-fileupload");
 const bodyParser = require("body-parser");
 
 const fs = require("fs");
@@ -7,9 +8,9 @@ const app = express();
 
 const PORT = 9090;
 const BASE_PATH = path.join(__dirname, "public");
-const UPLOADS_PATH = path.join(__dirname, "uploads");
 
 app.use(express.static(BASE_PATH));
+app.use(fileUpload());
 
 // const jsonParser = bodyParser.json();
 // app.use(jsonParser);
@@ -20,8 +21,8 @@ app.get("/", function (req, res) {
 	res.send("Hello World!");
 });
 
-function createDir(dir) {
-	const dirPath = path.join(BASE_PATH, dir);
+function createDir(dirPath) {
+	// const dirPath = path.join(BASE_PATH, dir);
 	if (!fs.existsSync(dirPath)) {
 		fs.mkdirSync(dirPath);
 	}
@@ -53,6 +54,31 @@ function getAPIFilePath(req) {
 	const basename = path.basename(id);
 	return path.join(BASE_PATH, dir, basename);
 }
+
+app.post("/api/upload", (req, res) => {
+	if (!req.files) {
+		return res.status(500).send({ msg: "file is not found" });
+	}
+	// accessing the file
+	const file = req.files.file;
+
+	const dirName = randomKey();
+	const dirPath = path.join(BASE_PATH, "uploads", dirName);
+	createDir(dirPath);
+
+	const filePath = path.join(BASE_PATH, "uploads", dirName, file.name);
+	const publicPath = path.join("/uploads", dirName, file.name);
+
+	//  mv() method places the file inside public directory
+	file.mv(filePath, function (err) {
+		if (err) {
+			console.log(err);
+			return res.status(500).send({ msg: "Error occured" });
+		}
+		// returing the response with file path and name
+		return res.json({ name: file.name, path: publicPath });
+	});
+});
 
 // index
 app.get("/api/:resources", function (req, res) {
@@ -103,7 +129,8 @@ app.post("/api/:resources", function (req, res) {
 	}
 
 	const dirName = path.basename(resources, ext);
-	createDir(dirName);
+	const dirPath = path.join(BASE_PATH, dirName);
+	createDir(dirPath);
 
 	const key = randomKey();
 	const fileName = key + ext;
@@ -135,7 +162,8 @@ app.get("/api/:resources/:id", function (req, res) {
 // update resource
 app.put("/api/:resources/:id", function (req, res) {
 	const dirName = req.params.resources;
-	createDir(dirName);
+	const dirPath = path.join(BASE_PATH, dirName);
+	createDir(dirPath);
 
 	const filePath = getAPIFilePath(req);
 	console.log(filePath);
@@ -160,26 +188,6 @@ app.delete("/api/:resources/:id", function (req, res) {
 
 	fs.unlinkSync(filePath);
 	res.json({ msg: "resource deleted" });
-});
-
-app.post("/file_upload", function (req, res) {
-	console.log(req.files[0]); // 上传的文件信息
-
-	let des_file = path.join(UPLOADS_PATH, req.files[0].originalname);
-	fs.readFile(req.files[0].path, function (err, data) {
-		fs.writeFile(des_file, data, function (err) {
-			if (err) {
-				console.log(err);
-			} else {
-				response = {
-					message: "File uploaded successfully",
-					filename: req.files[0].originalname,
-				};
-			}
-			console.log(response);
-			res.end(JSON.stringify(response));
-		});
-	});
 });
 
 const server = app.listen(PORT, function () {
